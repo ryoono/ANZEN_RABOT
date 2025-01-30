@@ -2,6 +2,7 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME680.h>
 #include "BLE1507.h"
+#include <Servo.h>
 
 // BME680のI2Cアドレス
 #define BME680_I2C_ADDRESS 0x77
@@ -12,11 +13,14 @@
 
 // BLE関連
 static BT_ADDR addr = {{0x19, 0x84, 0x06, 0x14, 0xAB, 0xCD}};
-static char ble_name[BT_NAME_LEN] = "SPR-GAS-SENSOR";
+static char ble_name[BT_NAME_LEN] = "SPR-PERIPHERAL";
 BLE1507 *ble1507;
 
 // BME680センサーインスタンス
 Adafruit_BME680 bme;
+
+Servo myServo; // サーボモータのインスタンス
+const int servoPin = 5; // サーボモータ制御用のピン (Spresense拡張ボードのピン)
 
 void setup() {
   // シリアルモニタの初期化
@@ -56,6 +60,11 @@ void setup() {
   }
 
   Serial.println("BLE initialized and advertising started.");
+
+  myServo.attach(servoPin, 500, 2400);
+  // 初期角度設定
+  myServo.write(5);
+  Serial.println("Servo motor control started");
 }
 
 void loop() {
@@ -72,6 +81,10 @@ void loop() {
            bme.gas_resistance / 1000.0);
 
   ble1507->writeNotify((uint8_t*)bleData, strlen(bleData));
+
+  if( (bme.gas_resistance / 1000.0) <= 90.0 ){
+    myServo.write(175);
+  }
 
   // デバッグ出力
   Serial.println(bleData);
